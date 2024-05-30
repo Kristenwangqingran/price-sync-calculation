@@ -1,0 +1,14 @@
+syntax = "proto2";
+package internal;
+
+message MerchantConstraints {
+    optional uint64 id = 1;
+    optional string region = 2;
+    optional int64 profit_rate_min = 3;
+    optional int64 profit_rate_max = 4;
+    optional string operator = 5;
+    optional uint64 ctime = 6;
+    optional uint64 mtime = 7;
+    optional string merchant_region = 8;
+}
+

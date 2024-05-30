@@ -1,0 +1,44 @@
+syntax = "proto2";
+package internal;
+
+message FulfillmentChannelDetail {
+  optional uint32 channel_id = 1;
+  optional int64 cover_shipping_fee = 2;
+  optional string default_price = 3;
+  optional string display_name = 4;
+  optional bool enabled = 5;
+  optional string flag = 6;
+  optional bool is_force_enabled = 7;
+  optional bool is_mask_channel = 8;
+  optional int64  is_shipping_fee_promotion_rule = 9;
+  repeated uint32 item_exclusive_channels = 10;
+  optional string max_default_price = 11;
+  optional string min_default_price = 12;
+  optional string name = 13;
+  optional string name_key = 14;
+  optional uint32 parent_channel_id = 15;
+  repeated string seller_location = 16;
+  optional string service_type = 17;
+  optional string service_type_identifier = 18;
+  optional int64 service_type_priority = 19;
+  optional int64 size_id = 20;
+  optional int64 volumetric_factor = 21;
+  repeated string warehouse_location = 22;
+  repeated uint32 related_enabled_channels = 23;
+  repeated uint32 related_disabled_channels = 24;
+}
+
+message ItemLogisticsInfo {
+  optional uint64 flag = 1;
+  optional bool cover_shipping_fee = 2;
+  optional bool enabled = 3;
+  optional double default_price = 4;
+  optional string price = 5;
+  optional uint32  sizeid = 6;
+  optional double size = 7;
+  optional uint32 channelid = 8;
+  repeated string seller_location_list = 9;
+  repeated string wms_location_list = 10;
+  optional bool is_seller_channel = 11;
+  optional bool is_wms_channel = 12;
+}

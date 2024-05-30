@@ -1,0 +1,39 @@
+syntax = "proto2";
+package internal;
+
+message BatchGetSlsLocationInfoRequest {
+  repeated AddressQuery address_list = 1;
+}
+
+message AddressQuery {
+  optional string unique_id = 1;
+  optional uint32 channel_id = 2;
+  optional uint64 seller_id = 3;
+  optional uint64 seller_address_id = 4;
+  optional uint64 buyer_id = 5;
+  optional uint64 buyer_address_id = 6;
+}
+
+message BatchGetSlsLocationInfoResponse {
+  optional uint32 retcode = 1;
+  optional string message = 2;
+  optional string detail = 3;
+  optional LocationData data = 4;
+}
+
+message LocationData {
+  repeated LocationInfo location_info = 1;
+}
+
+message LocationInfo {
+  optional string unique_id = 1;
+  optional uint32 channel_id = 2;
+  optional LocationRes seller_result = 3;
+  optional LocationRes buyer_result = 4;
+}
+
+message LocationRes {
+  repeated uint64 location_ids = 1;
+  optional uint32 retcode = 2;
+  optional string message = 3;
+}

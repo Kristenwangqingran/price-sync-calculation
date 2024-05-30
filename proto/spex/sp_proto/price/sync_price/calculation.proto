@@ -1,0 +1,805 @@
+syntax = "proto2";
+package price.sync_price.calculation;
+
+/**
+commands {
+  price.sync_price.calculation.calc_global_discount_info_by_item_ids(CalcGlobalDiscountInfoByItemIdsRequest, CalcGlobalDiscountInfoByItemIdsResponse)
+  price.sync_price.calculation.calc_local_sip_oversea_discount_price(CalcLocalSipOverseaDiscountPriceRequest, CalcLocalSipOverseaDiscountPriceResponse)
+  price.sync_price.calculation.calculate_price_for_cbsc(CalculatePriceForCbscRequest,CalculatePriceForCbscResponse)
+  price.sync_price.calculation.calculate_a_price_by_p_item_for_cb_sip(CalculateAPriceByPItemForCBSIPRequest,CalculateAPriceByPItemForCBSIPResponse)
+  price.sync_price.calculation.calculate_sip_item_price_for_cb_sip(CalculateSipItemPriceForCbSipRequest,CalculateSipItemPriceForCbSipResponse)
+  price.sync_price.calculation.calculate_a_price_by_p_item_for_local_sip(CalculateAPriceByPItemForLocalSIPRequest,CalculateAPriceByPItemForLocalSIPResponse)
+  price.sync_price.calculation.convert_currency(ConvertCurrencyRequest,ConvertCurrencyResponse)
+  price.sync_price.calculation.get_cbsc_price_factor(GetCbscPriceFactorRequest,GetCbscPriceFactorResponse)
+  price.sync_price.calculation.set_cbsc_price_factor(SetCbscPriceFactorRequest,SetCbscPriceFactorResponse)
+  price.sync_price.calculation.get_local_sip_price_factor(GetLocalSipPriceFactorRequest,GetLocalSipPriceFactorResponse)
+  price.sync_price.calculation.get_cb_sip_region_level_config(GetCbSipRegionLevelConfigRequest,GetCbSipRegionLevelConfigResponse)
+  price.sync_price.calculation.get_cb_sip_shop_level_config(GetCbSipShopLevelConfigRequest,GetCbSipShopLevelConfigResponse)
+  price.sync_price.calculation.get_cb_sip_rate_config(GetCbSipRateConfigRequest,GetCbSipRateConfigResponse)
+  price.sync_price.calculation.get_cb_sip_a_hidden_fee_config(GetCbSipAHiddenFeeConfigRequest,GetCbSipAHiddenFeeConfigResponse)
+  price.sync_price.calculation.update_profit_rate_limit(UpdateProfitRateLimitRequest, UpdateProfitRateLimitResponse)
+  price.sync_price.calculation.get_profit_rate_limit_list(GetProfitRateLimitListRequest, GetProfitRateLimitListResponse)
+  price.sync_price.calculation.get_a_shop_margin(GetAShopMarginRequest, GetAShopMarginResponse)
+//  price.sync_price.calculation.get_a_shop_price_ratio(GetAPriceRatioRequest, GetAShopPriceRatioResponse)
+  price.sync_price.calculation.get_a_item_margin(GetAItemMarginRequest, GetAItemMarginResponse)
+  price.sync_price.calculation.get_a_item_real_weight(GetAItemRealWeightRequest, GetAItemRealWeightResponse)
+  price.sync_price.calculation.set_a_shop_margin(SetAShopMarginRequest, SetAShopMarginResponse)
+//  price.sync_price.calculation.set_a_shop_price_ratio_batch(SetAShopPriceRatioBatchRequest, SetAShopPriceRatioBatchResponse)
+  price.sync_price.calculation.get_p_shop_ops_price_ratio_setting_batch(GetPShopOpsPriceRatioSettingBatchRequest, GetPShopOpsPriceRatioSettingBatchResponse)
+  price.sync_price.calculation.set_a_item_margin(SetAItemMarginRequest, SetAItemMarginResponse)
+  price.sync_price.calculation.set_a_item_real_weight(SetAItemRealWeightRequest, SetAItemRealWeightResponse)
+  price.sync_price.calculation.set_price_ratio(SetPriceRatioRequest, SetPriceRatioResponse)
+  price.sync_price.calculation.create_cb_sip_a_shop_seller_discount_promotion(CreateCBSIPAShopSellerDiscountPromotionRequest, CreateCBSIPAShopSellerDiscountPromotionResponse)
+  price.sync_price.calculation.get_cb_sip_a_shop_seller_discount_promotion(GetCBSIPAShopSellerDiscountPromotionRequest, GetCBSIPAShopSellerDiscountPromotionResponse)
+}
+ */
+
+message Constant {
+  // range: 415900000 - 416000000
+  enum ErrorCode {
+    // server related error
+    ERROR_INTERNAL = 415900000;
+    ERROR_MARSHAL = 415900001;
+    ERROR_DATABASE = 415900002;
+    ERROR_CACHE = 415900003;
+    ERROR_HTTP_API = 415900004;
+    ERROR_NOT_FOUND = 415900005;
+    ERROR_EXTERNAL = 415900006;
+
+    // business related error
+    ERROR_PARAMS = 415900100;
+    ERROR_GET_MERCHANT_REGION = 415900101;
+    ERROR_GET_MERCHANT_CONFIG_SETTING = 415900102;
+    ERROR_GET_MERCHANT_EXCHANGE_RATE = 415900103;
+    ERROR_GET_SHOP_COMMISSION_RATE = 415900104;
+    ERROR_GET_ITEM_INFO = 415900105;
+    ERROR_GET_ENABLED_CHANNELS = 415900106;
+    ERROR_EMPTY_ENABLED_CHANNELS = 415900107;
+    ERROR_CALCULATE_HIDDEN_FEE = 415900108;
+    ERROR_GLOBAL_DISCOUNT_UNEXPECTED = 415900109; // for edge case, for example global discount rate is <=0 or >=1
+    ERROR_INVALID_USER_STATUS = 415900110;
+  }
+
+  enum GlobalDiscountInputType {
+    DISCOUNT_RATE = 0; // DISCOUNT_RATE -> MPSKU price
+    MPSKU_PRICE = 1; // MPSKU price -> DISCOUNT_RATE
+  }
+
+  enum CalcErr {
+    DISCOUNT_PRICE_HIT_LIMIT = 1; //e.g. vn , promotion price < 50% of normal price
+    DISCOUNT_PRICE_FACTOR_NOT_FOUND = 2;
+  }
+
+  enum LocalSipInfoType {
+    BASIC_INFO = 0;
+    HIDDEN_FEE = 1;
+    SHIPPING_FEE = 2;
+  }
+
+  enum CbSipRegionLevelInfoType {
+    EXCHANGE_RATE = 0;
+    COUNTRY_MARGIN = 1;
+  }
+
+  enum CbSipRateInfoType {
+    DEFAULT_SIP_RATE = 0;
+    LIMIT_LIST = 1;
+  }
+
+  enum CbSipAHiddenFeeInfoType {
+    RULES_HPFN_CONFIG_LIST_WITH_PAGINATION = 0;
+    RULES_HPFN_CONFIG_LIST_ALL = 1;
+    RULE_HPFN_CONFIG_DETAIL = 2;
+    RULE_HPFN_REGION_SETTING = 3;
+  }
+
+  enum ExchangeRateSource {
+    SELLER_PLATFORM = 0; // fetch from seller platform api
+    CB_SIP_EXCHANGE_RATE = 1; // now for cb sip, and fetch from sip db
+    ORDER_MART_EXCHANGE_RATE = 2; // now for mtsku price relink case, and fetch from order mart DI table
+  }
+
+  enum PriceSyncToggle {
+    PRICE_SYNC_TOGGLE_READ_FROM_SLS = 1;
+    PRICE_SYNC_TOGGLE_READ_FROM_DB = 2;
+  }
+
+  enum FeeRateStatus {
+    FEE_RATE_NOT_SET = 0;
+    FEE_RATE_SET = 1;
+  }
+
+  enum HiddenPriceError { // keep compatible with listing_service for FE admin usage
+      CALCULATE_HIDDEN_FEE_ERROR = 2250;
+      CALCULATE_HIDDEN_FEE_NO_AVAILABLE_CHANNEL_ERROR = 2251;
+  }
+
+  enum CbscPriceFactorInfoType {
+      CBSC_SHOP_LEVEL_FEE_RATE = 0;
+      CBSC_FEE_RATE_LIMIT = 1;
+      CBSC_EXCHANGE_RATE = 2;
+  }
+}
+
+// price.sync_price.calculation.calc_global_discount_info_by_item_ids
+message CalcGlobalDiscountInfoByItemIdsRequest {
+  repeated GlobalDiscountQueryId queries = 1; // max batch size = 10, configurable
+}
+
+message GlobalDiscountQueryId {
+  optional uint64 merchant_id = 1; // required. mtsku merchant id
+  optional uint64 mpsku_shop_id = 2; // required. mpsku shop id
+  optional uint64 mpsku_item_id = 3; // required. mpsku item id
+  optional uint64 mpsku_model_id = 4; // optional. mpsku model id
+  optional string mpsku_region = 5;  // required. mpsku region
+  optional int64 mtsku_original_price = 6;  // required. mtsku original price before tax, now for mtsku, price before tax = price after tax
+  optional uint32 global_discount_input_type = 7;  // required. enum GlobalDiscountInputType
+  optional int64 global_discount_query_data = 8;  // required. depend on global_discount_input_type, if mode is DISCOUNT_RATE, then should set discount rate here(100%->10000); if mode is MPSKU_PRICE, then should set mpsku price(1->100000).
+}
+
+message CalcGlobalDiscountInfoByItemIdsResponse {
+  optional string debug_msg = 1; // global error for all queries
+  repeated GlobalDiscountInfo global_discount_info_list = 2; // length will be same like request. If not found/has any error, then the query result will be empty, and fill with input fields and error
+}
+
+message GlobalDiscountInfo {
+  optional uint32 err_code = 1; // error code for this query
+  optional string err_msg = 2; // error message for this query. If happened edge case for example discount rate <= 0 or > 1, then should return error for clients
+  optional uint64 merchant_id = 3; // mtsku merchant id
+  optional uint64 mpsku_shop_id = 4; // mpsku shop id
+  optional uint64 mpsku_item_id = 5; // mpsku item id
+  optional uint64 mpsku_model_id = 6; // mpsku model id
+  optional string mpsku_region = 7; // mpsku region
+  optional int64 mtsku_original_price = 8; // mtsku original price
+  optional uint32 global_discount_input_type = 9; // enum GlobalDiscountInputType
+  optional int64 global_discount_query_data = 10; // depend on global_discount_input_type
+  optional int64 global_discount_query_result = 11; // depend on global_discount_input_type, if mode is DISCOUNT_RATE, then return mpsku price, if discount rate is unexpected, then return err for the query; if mode is MPSKU_PRICE, then return discount rate, if calculate rate >=1 or <=0, then still return the data (checked with discount side)
+}
+
+
+message ItemModelId {
+  optional uint64 item_id = 1;
+  optional uint64 model_id = 2;
+}
+
+message CalcLocalSipOverseaDiscountPriceRequest {
+  repeated ItemModelId affi_item_model_ids = 1;
+
+  optional int64 affi_shop_id = 2;
+  optional string affi_region = 3;
+
+  // 100,000 -> 100% , discount_rate must be no larger than 100,000. if larger than 100,000 then return error_param
+  optional int64 discount_rate = 4;
+}
+
+message CalcLocalSipOverseaDiscountPriceResponse {
+  repeated LocalSIPAffiPriceResult results = 1; //same length as request.setting, if corresponding request cannot
+  // found, then return result.affi_price=-1 with detailed error_detail
+  optional string debug_msg = 2;
+}
+
+
+message LocalSIPAffiPriceResult {
+  optional int64 affi_price = 1; //the calculated price. if err, this value would be -1
+  optional string error_detail = 2; //debug msg for each setting error details
+  optional uint32 calc_err = 3;
+}
+
+
+message GetCbSipAHiddenFeeConfigRequest{
+  optional uint32 info_type = 1; // can refer enum CbSipAHiddenFeeInfoType
+  optional uint32 page_index = 2; // for enum CbSipAHiddenFeeInfoType.Rules_List_With_Pagination
+  optional uint32 page_size = 3; // for enum CbSipAHiddenFeeInfoType.Rules_List_With_Pagination, max is 100
+  optional string rule_key = 4; // for enum CbSipAHiddenFeeInfoType.Rule_Detail
+}
+
+
+message GetCbSipAHiddenFeeConfigResponse{
+  optional string debug_msg = 1;
+  optional uint32 total = 2; // for Rules_List_With_Pagination/Rules_List_All
+  repeated AHiddenFeeRuleInfo rules = 3; // for Rules_List_With_Pagination/Rules_List_All/Rule_Detail
+  optional string rule_region_settings_str = 4; // for Rule_Region_Setting, map[string]map[string]*model.RateTableCfg{}
+}
+
+message AHiddenFeeRuleInfo {
+  optional string rule_key = 1;
+  optional string desc_info = 2;
+  repeated AHiddenFeeRuleRow details = 3;
+}
+
+message AHiddenFeeRuleRow{
+  optional int64 weight_range = 1;
+  optional int64 start_price = 2;
+  optional int64 start_weight = 3;
+  optional int64 round_size = 4;
+  optional int64 price = 5;
+  optional int64 weight_step = 6;
+  optional int64 adjustment = 7;
+  optional string desc_info = 8;
+}
+
+message GetCbSipRateConfigRequest{
+  optional uint32 cb_sip_rate_info_type = 1; // can refer enum cb_sip_rate_info_type
+}
+
+message GetCbSipRateConfigResponse{
+  optional string debug_msg = 1;
+  optional string default_sip_rate_str = 2; // json format in db, and map[string]map[string]int64
+  optional string sip_rate_limit_str = 3; // json format in db, and map[string]map[string]int64
+}
+
+message GetCbSipShopLevelConfigRequest{
+  optional uint64 p_shop_id = 1;
+}
+
+message GetCbSipShopLevelConfigResponse{
+  optional string debug_msg = 1;
+  // only return existing configs
+  repeated CbSipAffiShopInfo a_shop_config_list = 2;
+}
+
+message CbSipAffiShopInfo {
+  optional uint64 a_shop_id = 1;
+  optional double sip_rate = 2;
+}
+
+message GetCbSipRegionLevelConfigRequest{
+  repeated RegionPair region_pair_list = 1;
+  optional uint32 info_type = 2; // refer enum CbSipRegionLevelInfoType
+}
+
+
+message GetCbSipRegionLevelConfigResponse{
+  optional string debug_msg = 1;
+  optional CbSipRegionLevelExchangeRateConfig exchange_rate_config = 2;
+  optional CbSipRegionLevelCountryMarginConfig country_margin_config = 3;
+}
+
+message CbSipRegionLevelExchangeRateConfig {
+  repeated ExchangeRateData exchange_rate_list = 2;
+}
+
+message ExchangeRateData {
+  optional string src_currency = 1;
+  optional string dst_currency = 2;
+  optional string exchange_rate = 3;
+}
+
+message CbSipRegionLevelCountryMarginConfig {
+  repeated CountryMarginData country_margin_list = 3;
+}
+
+message CountryMarginData {
+  optional string src_region = 1;
+  optional string dst_region = 2;
+  optional double country_margin = 3;
+}
+
+message GetLocalSipPriceFactorRequest{
+  repeated RegionPair region_pair_list = 1;
+  optional uint32 info_type = 2; // refer enum LocalSipInfoType
+}
+
+message RegionPair{
+  optional string src_region = 1;
+  optional string dst_region = 2;
+}
+
+message GetLocalSipPriceFactorResponse{
+  optional string debug_msg = 1;
+  repeated LocalSipPriceFactorInfo results = 2; // the length and order is same like input.
+}
+
+message LocalSipPriceFactorInfo {
+  // for BASIC_INFO
+  optional LocalSipPriceFactorBasicInfo basic_info = 1;
+
+  // for Hidden_Fee
+  optional LocalSipPriceFactorHiddenFeeInfo hidden_fee_info = 2;
+
+  // for Shipping_Fee
+  optional LocalSipPriceFactorShippingFeeInfo shipping_fee_info = 3;
+}
+
+message LocalSipPriceFactorBasicInfo {
+  optional double country_margin = 1;
+  optional double min_country_margin = 2;
+  optional double max_country_margin = 3;
+  optional double exchange_rate = 4;
+  optional double min_exchange_rate = 5;
+  optional double max_exchange_rate = 6;
+  optional int32 initial_hidden_fee_toggle = 7;
+  optional int32 shipping_fee_toggle = 8;
+  optional double init_hidden_price = 9;
+  optional double min_init_hidden_price = 10;
+  optional double max_init_hidden_price = 11;
+}
+
+message LocalSipPriceFactorShippingFeeInfo {
+  repeated LocalShippingFeeRule local_shipping_fee_rules = 1;
+}
+
+message LocalSipPriceFactorHiddenFeeInfo {
+  repeated LocalShippingFeeRule local_hidden_fee_rules = 1;
+}
+
+message LocalShippingFeeRule{
+  optional string mst_region = 1;
+  optional string affi_region = 2;
+  optional int64 weight = 3;
+  optional int64 fee = 4;
+  optional int64 id = 5;
+  optional int64 ctime = 6;
+}
+
+message GetCbscPriceFactorRequest{
+  optional uint32 info_type = 1; // mandatory. refer enum CbscPriceFactorInfoType
+  optional uint64 merchant_id = 2; // mandatory
+  optional uint64 main_account_id = 3; // optional. Used for info_type=ShopLevelFeeRate, if set, then return data under this account
+  repeated uint64 shop_id_list = 4; // mpsku shops id, optional. Used for info_type=ShopLevelFeeRate, if set, then return specific shop data only
+  optional string shop_region = 5; // optional. Used for info_type=FeeRateLimit. If need and fill this field, then only return this region's data, otherwise, if need and keep region as empty, then return all regions' data
+}
+
+message GetCbscPriceFactorResponse {
+  optional string debug_msg = 1;
+  optional CbscPriceFactor results = 2;
+}
+
+message CbscPriceFactor {
+  repeated CbscShopLevelFeeRate shop_fee_rate_list = 1; // the length is depending on valid shop list, can use shop id as mapping index
+  optional CbscFeeRateLimit fee_rate_limit = 2; // fee rate limit
+  repeated CbscExchangeRate exchange_rate_list = 3; // the length is determined by shop regions under this merchant
+}
+
+message CbscShopLevelFeeRate {
+  optional int64 shop_id = 1;
+  optional int64 transaction_fee_rate = 2;
+  optional int64 profit_rate = 3;
+  optional int32 profit_rate_status = 4;
+  optional int64 service_fee_rate = 5;
+  optional int32 service_fee_rate_status = 6;
+  optional int64 commission_rate = 7;
+  optional int64 reference_service_fee_rate = 8;
+}
+
+message CbscFeeRateLimit {
+  optional CbscServiceFeeRateLimit service_fee_limit = 1; // for this merchant
+  repeated CbscProfitRateLimit profit_rate_limit = 2; // the length is determined by req.shop_region, if fill, then only contain limit for this region, if not, then determined by actual shop region size under this merchant region
+}
+
+message CbscProfitRateLimit {
+  optional int64 min_profit_rate = 1;
+  optional int64 max_profit_rate = 2;
+  optional string region = 3; // shop region
+}
+
+message CbscServiceFeeRateLimit {
+  optional int64 min_service_fee_rate = 1;
+  optional int64 max_service_fee_rate = 2;
+}
+
+message CbscExchangeRate {
+  optional double exchange_rate = 1; // actual value
+  optional string region = 2; // shop region
+}
+
+message SetCbscPriceFactorRequest{
+  optional uint64 merchant_id = 1;
+  repeated ShopCbscPriceFactorSetting shop_cbsc_price_factors = 2;
+}
+
+message SetCbscPriceFactorResponse {
+  optional string debug_msg = 1;
+}
+
+message ShopCbscPriceFactorSetting {
+  optional int64 shop_id = 1;
+  optional string region = 2;
+  optional uint64 profit_rate = 3;
+  optional uint64 service_fee_rate = 4;
+}
+
+message ConvertCurrencyRequest{
+  repeated int64 src_price_list = 1;
+  optional uint32 exchange_rate_source = 2; // can refer enum ExchangeRateSource
+  optional string src_currency = 3; // required for source cbsip
+  optional string dst_currency = 4; // required for source cbsip
+  optional uint64 merchant_id = 5; // required for source seller platform
+  optional string mpsku_region = 6; // required for source seller platform
+}
+
+message ConvertCurrencyResponse {
+  optional string debug_msg = 1;
+  repeated int64 dst_prices = 2; // the length and order is same like src_price_list.
+  optional double exchange_rate = 3;
+}
+
+message CalculateAPriceByPItemForLocalSIPRequest{
+  optional uint64 p_shop_id = 1;
+  optional string p_region = 2;
+  optional uint64 p_item_id = 3;
+  repeated LocalSipAPriceQueryId queries = 4;
+  optional bool calculate_for_create = 5;
+}
+
+message LocalSipAPriceQueryId {
+  optional uint64 a_shop_id = 1;
+  optional string a_region = 2;
+  optional uint64 a_item_id = 3;  // optional for create, required for non-create scenarios
+  optional uint64 a_model_id = 4;  // optional
+  optional int64 p_normal_price = 5; // price after tax
+  repeated int64 p_promotion_prices = 6;
+
+  // following fields are used for create scenario, need fill for shipping fee calculation on SLS mode
+  repeated int64 enabled_channel_id_list = 7;
+  optional uint64 leaf_category_id = 8;
+}
+
+message CalculateAPriceByPItemForLocalSIPResponse {
+  optional string debug_msg = 1;
+  repeated LocalSipAPriceInfo results = 2; // the length and order is same like queries.
+  repeated ShopItemCustomizedOPL a_shop_item_customized_opls = 3; // CustomizedOPL of each a item
+}
+
+message ShopItemCustomizedOPL {
+  optional uint64 shop_id = 1;
+  optional uint64 item_id = 2;
+  optional CustomizedOPL customized_opl = 3;
+}
+
+message LocalSipAPriceInfo {
+  optional uint32 err_code = 1; // error code for this query
+  optional string err_msg = 2; // error message for this query
+  optional int64 normal_price = 3;
+  repeated int64 promotion_prices = 4;
+  optional uint64 a_shop_id = 5;
+  optional string a_region = 6;
+  optional uint64 a_item_id = 7;
+  optional uint64 a_model_id = 8;
+  optional LocalSipPriceFactorSnap snap = 9;
+}
+
+message LocalSipPriceFactorSnap {
+  optional double weight = 1;
+  optional double shop_margin = 2;
+  optional double item_margin = 3;
+  optional double shippingFee = 4;
+  optional double country_margin = 5;
+  optional double exchange_rate = 6;
+  optional double init_hidden_price = 7;
+}
+
+message CalculateSipItemPriceForCbSipRequest {
+  optional uint64 shop_id = 1;      // mandatory
+  optional string region = 2;       // mandatory
+  optional uint64 item_id = 3;      // optional
+
+  // item level info, used for hidden fee calculation now.
+  repeated uint64 channel_id_list = 4;  // mandatory
+  optional uint64 leaf_category_id = 5;      // mandatory, leaf category_id
+  optional uint64 weight = 6;          // mandatory, weight unit is kg, magnify 100000 times
+
+  // for multiple models
+  repeated SipItemPriceForCbSipQueryId queries = 7;
+}
+
+message SipItemPriceForCbSipQueryId {
+  optional uint64 model_id = 1;
+  optional int64 price = 2; // P item base price before tax, based on if has ongoing seller discount price or not now
+}
+
+message CalculateSipItemPriceForCbSipResponse {
+  optional string debug_msg = 1;
+  repeated CbSipItemPriceInfo cb_sip_item_price_info_list = 2;
+}
+
+message CbSipItemPriceInfo {
+  optional uint32 err_code = 1; // error code for this query
+  optional string err_msg = 2; // error message for this query
+  optional uint64 model_id = 3;
+  optional int64 cb_sip_item_price = 4;
+  optional string currency = 5;
+}
+
+message CalculateAPriceByPItemForCBSIPRequest{
+  optional uint64 merchant_id = 1;
+  optional string merchant_region = 2;
+  optional uint64 p_shop_id = 3;
+  optional string p_region = 4;
+  optional uint64 p_item_id = 5;
+  optional uint64 a_shop_id = 6;
+  optional string a_region = 7;
+  optional uint64 a_item_id = 8; // optional
+  repeated AItemCBSIPQueryId queries = 9;
+  optional bool calculate_for_create = 10;
+}
+
+message AItemCBSIPQueryId{
+  optional uint64 a_model_id = 1;  // optional
+  optional int64 p_item_price = 2; // before tax, promotionType=SHOPEE_MANAGE_ITEM_PRICE 701.
+  optional int64 p_normal_price = 3; // before tax, promotionType=0.
+  optional int64 p_promotion_price = 4;  // before tax, currently promotionType=seller discount only.
+}
+
+message CalculateAPriceByPItemForCBSIPResponse {
+  optional string debug_msg = 1;
+  repeated AItemPriceResultInfo results = 2; // the length and order is same like req.queries.
+  optional CustomizedOPL customized_opl = 3;
+}
+
+message CustomizedOPL {
+  optional uint32 start_time = 1; // starting time of the first round
+  optional uint32 end_time = 2; // end time of first round
+  optional uint32 purchase_limit = 3; // the purchase limit for each round
+  optional uint32 repeated_times = 4; // number of rounds of OPL
+  optional uint64 promotion_id = 5; // promotionId of last round
+}
+
+message AItemPriceResultInfo {
+  optional uint32 err_code = 1; // error code for this query
+  optional string err_msg = 2; // error message for this query.
+  optional int64 normal_price = 3; // currency is A region currency
+  optional int64 settlement_price = 4; // currency is from merchant currency, same like P item price
+  optional string settlement_price_currency = 5;
+  optional int64 promotion_price = 6; // currency is A region currency
+  optional CbSipPriceFactorSnap snap = 7;
+}
+
+message CbSipPriceFactorSnap {
+  optional double weight = 1;
+  optional double country_margin = 2;
+  optional double shop_margin = 3;
+  optional double item_margin = 4;
+  optional double exchange_rate = 5;
+  optional double price_ratio = 6;
+  optional double affi_hidden_price = 7;
+  optional string src_currency = 8;
+  optional double service_fee = 9;
+  optional double commission_fee = 10;
+  optional double handling_fee = 11;
+}
+
+message CalculatePriceForCbscRequest{
+  optional uint64 merchant_id = 1;  // mandatory. target merchant id
+  optional bool is_mtsku_to_mpsku = 2; // mandatory. true when calculate mpsku by mtsku, false when calculate mtsku by mpsku
+  repeated MtskuMpskuPriceQueryId queries = 3; // mandatory
+}
+
+message MtskuMpskuPriceQueryId{
+  optional int64 src_price = 1; // mandatory. depending on is_mtsku_to_mpsku, if true, then set mtsku price
+  optional uint64 mpsku_shop_id = 2; // mandatory. mpsku shop id
+  optional string mpsku_region = 3; // mandatory. mpsku region
+  optional uint64 mpsku_item_id = 4; // mpsku item id
+  optional uint64 weight = 5; // possible to be 0
+  optional uint64 leaf_category_id = 6;
+  repeated uint32 enabled_channel_id_list = 7;
+}
+
+message CalculatePriceForCbscResponse{
+  optional string debug_msg = 1;
+  repeated MtskuMpskuPriceQueryInfo results = 2; // the length and order is same like req.queries.
+}
+
+message MtskuMpskuPriceQueryInfo {
+  optional uint32 err_code = 1; // error code for this query
+  optional string err_msg = 2; // error message for this query.
+  optional int64 dst_price = 3;
+  optional int64 hide_price = 4;
+  optional int32 hide_price_error = 5;
+}
+
+message UpdateProfitRateLimitRequest{
+  optional string merchant_region = 1; // required
+  optional string region = 2; // required
+  // 3 and 4 must have at least one provided
+  optional double profit_rate_min = 3;
+  optional double profit_rate_max = 4;
+  optional string operator = 5; // required
+}
+
+message UpdateProfitRateLimitResponse{
+  optional string debug_msg = 1;
+}
+
+message GetProfitRateLimitListRequest{
+  optional string merchant_region = 1;
+}
+
+message GetProfitRateLimitListResponse{
+  optional string debug_msg = 1;
+  repeated ProfitRateLimit data = 2;
+}
+
+message ProfitRateLimit {
+  optional uint64 id = 1;
+  optional string region = 2;
+  optional double profit_rate_min = 3;
+  optional double profit_rate_max = 4;
+  optional string operator = 5;
+  optional uint32 update_time = 6;
+}
+
+//get_shop_margin
+message GetAShopMarginRequest { //shop_map_tab
+  repeated uint64 shop_ids = 1;
+}
+
+message GetAShopMarginResponse {
+  optional string debug_msg = 1;
+  repeated ShopMargin a_shop_margins = 2;
+}
+
+message ShopMargin {
+  optional uint64 shop_id = 1;
+  optional int64 margin = 2;
+}
+
+//sip_rate_info
+message GetAShopPriceRatioRequest { //shop_map_tab
+  repeated uint64 shop_ids = 1;
+}
+
+message GetAShopPriceRatioResponse {
+  optional string debug_msg = 1;
+  repeated ShopPriceRatio a_shop_price_ratios = 2;
+}
+
+message ShopPriceRatio {
+  optional uint64 shop_id = 1;
+  optional int64 price_ratio = 2;
+}
+
+//get_item_margin
+message GetAItemMarginRequest { //shop_map_tab, item_map_tab
+  repeated ShopIDToItemIDs shop_id_to_item_ids_list = 1;
+}
+
+message ShopIDToItemIDs {
+  optional uint64 shop_id = 1;
+  repeated uint64 item_ids = 2;
+}
+
+message GetAItemMarginResponse {
+  optional string debug_msg = 1;
+  repeated ItemMargin a_item_margins = 2;
+}
+
+message ItemMargin {
+  optional uint64 item_id = 1;
+  optional int64 item_margin = 2;
+}
+
+//get_aitem_real_weight
+message GetAItemRealWeightRequest { //item map table
+  optional uint64 shop_id = 1;
+  optional uint64 item_id = 2;
+}
+
+message GetAItemRealWeightResponse {
+  optional string debug_msg = 1;
+  optional int64 a_item_real_weight = 2;
+}
+
+message SetAShopMarginRequest {
+  optional uint64 shop_id = 1;
+  optional int64 margin = 2; // value in db = real value * 10^5
+}
+
+message SetAShopMarginResponse {
+  optional string debug_msg = 1;
+}
+
+//message SetAShopPriceRatioBatchRequest {
+//  optional uint64 p_shop_id = 1;
+//  repeated ShopPriceRatioSetting a_price_ratio_settings = 2;
+//  optional bool is_create = 3;
+//  optional bool is_ops = 4;
+//  optional bool skip_control_flag_check = 5; // now we check price ratio with mstShopInfo.InnerFlag & model.MstShopInnerFlag.SipRateControlledByOps based on if from ops / seller, if true then no need check
+//  optional bool need_sync_existing_data = 6;
+//}
+
+message ShopPriceRatioSetting {
+  optional uint64 shop_id = 1; // fill shop_id or region, and keep same behavior in one request
+  optional string region = 2;
+  optional int64 price_ratio = 3; // price ratio value in db = real value * 10^5
+}
+
+message SetAShopPriceRatioBatchResponse {
+  optional string debug_msg = 1;
+}
+
+message SetAItemMarginRequest {
+  optional uint64 a_shop_id = 1;
+  optional uint64 a_item_id = 2;
+  optional int64 a_item_margin = 3; // db value
+}
+
+message SetAItemMarginResponse {
+  optional string debug_msg = 1;
+}
+
+message SetAItemRealWeightRequest {
+  optional uint64 a_shop_id = 1;
+  optional uint64 a_item_id = 2;
+  optional int64 a_item_real_weight = 3; // db value
+}
+
+message SetAItemRealWeightResponse {
+  optional string debug_msg = 1;
+}
+
+message GetPShopOpsPriceRatioSettingBatchRequest {
+    repeated uint64 p_shop_ids = 1;
+}
+
+message PShopOpsPriceRatioSetting {
+  optional bool is_controlled_by_ops = 1;
+  optional int64 start_time = 2;
+  optional int64 end_time = 3;
+}
+
+message GetPShopOpsPriceRatioSettingBatchResponse {
+  optional string debug_msg = 1;
+  repeated PShopOpsPriceRatioSetting ops_price_ratio_setting = 2;
+}
+
+message SetPriceRatioRequest {
+  optional uint64 p_shop_id = 1;
+  repeated ShopPriceRatioSetting a_shop_price_ratio_settings = 2;
+  optional bool is_create = 3;
+  optional bool is_ops = 4;
+  optional bool skip_control_flag_check = 5; // now we check price ratio with mstShopInfo.InnerFlag & model.MstShopInnerFlag.SipRateControlledByOps based on if from ops / seller, if true then no need check
+  optional bool need_sync_existing_data = 6;
+}
+
+message SetPriceRatioResponse {
+  optional string debug_msg = 1;
+}
+
+message GetCBSIPAShopSellerDiscountPromotionRequest {
+  optional uint64 a_shop_id = 1;
+}
+
+message GetCBSIPAShopSellerDiscountPromotionResponse {
+  optional string debug_msg = 1;
+  optional uint64 promotion_id = 2;
+}
+
+message CreateCBSIPAShopSellerDiscountPromotionRequest {
+  optional uint64 a_shop_id = 1;
+}
+
+message CreateCBSIPAShopSellerDiscountPromotionResponse {
+  optional string debug_msg = 1;
+}
+
+service calculation {
+  rpc calc_global_discount_info_by_item_ids (CalcGlobalDiscountInfoByItemIdsRequest) returns (CalcGlobalDiscountInfoByItemIdsResponse) {}
+  rpc calc_local_sip_oversea_discount_price (CalcLocalSipOverseaDiscountPriceRequest) returns (CalcLocalSipOverseaDiscountPriceResponse) {}
+  rpc calculate_price_for_cbsc(CalculatePriceForCbscRequest) returns (CalculatePriceForCbscResponse) {}
+  rpc calculate_a_price_by_p_item_for_cb_sip(CalculateAPriceByPItemForCBSIPRequest) returns (CalculateAPriceByPItemForCBSIPResponse) {}
+  rpc calculate_sip_item_price_for_cb_sip(CalculateSipItemPriceForCbSipRequest) returns (CalculateSipItemPriceForCbSipResponse) {}
+  rpc calculate_a_price_by_p_item_for_local_sip(CalculateAPriceByPItemForLocalSIPRequest) returns (CalculateAPriceByPItemForLocalSIPResponse) {}
+  rpc convert_currency(ConvertCurrencyRequest) returns (ConvertCurrencyResponse) {}
+  rpc get_cbsc_price_factor(GetCbscPriceFactorRequest) returns (GetCbscPriceFactorResponse) {}
+  rpc set_cbsc_price_factor(SetCbscPriceFactorRequest) returns (SetCbscPriceFactorResponse) {}
+  rpc get_local_sip_price_factor(GetLocalSipPriceFactorRequest) returns (GetLocalSipPriceFactorResponse) {}
+  rpc get_cb_sip_region_level_config(GetCbSipRegionLevelConfigRequest) returns (GetCbSipRegionLevelConfigResponse) {}
+  rpc get_cb_sip_shop_level_config(GetCbSipShopLevelConfigRequest) returns (GetCbSipShopLevelConfigResponse) {}
+  rpc get_cb_sip_rate_config(GetCbSipRateConfigRequest) returns (GetCbSipRateConfigResponse) {}
+  rpc get_cb_sip_a_hidden_fee_config(GetCbSipAHiddenFeeConfigRequest) returns (GetCbSipAHiddenFeeConfigResponse) {}
+  rpc get_profit_rate_limit_list(GetProfitRateLimitListRequest) returns (GetProfitRateLimitListResponse) {}
+  rpc update_profit_rate_limit(UpdateProfitRateLimitRequest) returns (UpdateProfitRateLimitResponse) {}
+  rpc get_a_shop_margin(GetAShopMarginRequest) returns (GetAShopMarginResponse) {}
+  rpc get_a_shop_price_ratio(GetAShopPriceRatioRequest) returns (GetAShopPriceRatioResponse) {}
+  rpc get_a_item_margin(GetAItemMarginRequest) returns (GetAItemMarginResponse) {}
+  rpc get_a_item_real_weight(GetAItemRealWeightRequest) returns (GetAItemRealWeightResponse) {}
+  rpc get_p_shop_ops_price_ratio_setting_batch(GetPShopOpsPriceRatioSettingBatchRequest) returns (GetPShopOpsPriceRatioSettingBatchResponse) {}
+  rpc set_a_shop_margin(SetAShopMarginRequest) returns (SetAShopMarginResponse) {}
+//  rpc set_a_shop_price_ratio_batch(SetAShopPriceRatioBatchRequest) returns (SetAShopPriceRatioBatchResponse) {}
+  rpc set_a_item_margin(SetAItemMarginRequest) returns (SetAItemMarginResponse) {}
+  rpc set_a_item_real_weight(SetAItemRealWeightRequest) returns (SetAItemRealWeightResponse) {}
+//  rpc set_price_ratio(SetPriceRatioRequest) returns (SetPriceRatioResponse) {}
+  rpc create_cb_sip_a_shop_seller_discount_promotion(CreateCBSIPAShopSellerDiscountPromotionRequest) returns (CreateCBSIPAShopSellerDiscountPromotionResponse) {}
+  rpc get_cb_sip_a_shop_seller_discount_promotion(GetCBSIPAShopSellerDiscountPromotionRequest) returns (GetCBSIPAShopSellerDiscountPromotionResponse) {}
+}

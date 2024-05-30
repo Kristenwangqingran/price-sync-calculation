@@ -1,0 +1,55 @@
+# sp-workspace.yaml
+
+---
+protocol:
+  # Dependencies rules
+  dep:
+    # - name(required)             The fully-qualified name of a protocol(API Namespace)
+    #   topic_name(optional)       The default value is "master" if not set
+    - name: "shop.merchant"
+      topic_name: "master"
+    - name: "item.business"
+      topic_name: "master"
+    - name: "marketplace.order_accounting.integrated_fee"
+      topic_name: "master"
+    - name: "price.basic"
+      topic_name: "master"
+    - name: "shop.core"
+      topic_name: "master"
+    - name: "price.common_definition"
+      topic_name: "master"
+    - name: "marketplace.order_processing.cb_collection.api"
+      topic_name: "master"
+    - name: "account.address"
+      topic_name: "master"
+    - name: "shop.feature_toggle"
+      topic_name: "master"
+    - name: "account.core"
+      topic_name: "master_int64"
+    - name: "marketplace.listing.upload.product"
+      topic_name: "master"
+    - name: "marketplace.logistics.shop_channels"
+      topic_name: "master"
+    - name: "marketplace.listing.upload.crossupload.api"
+      topic_name: "spml_62574"
+    - name: "price.business"
+      topic_name: "master"
+    - name: "promotion.item_discount"
+      topic_name: "master"
+
+  # The root directory for the source code of protocols.
+  source_dir: "./sp_proto"
+
+  # The root directory for generated code.
+  generated_dir: "../../internal/proto/spex/gen"
+
+  # The targets of languages/platforms for generated codes.
+  targets:
+    - "go"
+    - "rpc"
+    - "tag"
+
+  # protocol generate options
+  generate_options:
+    # Remove generated go file json omitempty tag.
+    go_remove_omitempty: true

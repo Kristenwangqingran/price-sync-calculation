@@ -1,0 +1,122 @@
+# config file for a certain deploy unit of a service, can be used to maintain both configurations required by spkit as
+# well as any other self defined configurations by developers, managed by uniconfig (https://git.garena.com/shopee/common/uniconfig).
+# all config entries follows precedence: (Explicit Set > localhost config > environment variable > local config > remote config).
+
+# region of the deploy unit, used for determining its instance id and other region specific application layer logic.
+# bind with environment variable CID in container, optional.
+region: global
+
+# idc of the deploy unit, used for idc specific application layer logic.
+# bind with environment variable IDC in container, optional.
+idc: sg2
+
+# env of the deploy unit, used for determining its instance id and other env specific application layer logic.
+# bind with environment variable ENV in container, optional.
+env: test
+
+# default port of the deploy unit, used for default port of service admin.
+# bind with environment variable PORT in container, optional.
+port: 9000
+
+# service configuration required by spkit, compulsory.
+service:
+  service_name: syncprice.calculation
+  service_type: general
+  shutdown_timeout_seconds: 3
+  health_check_timeout_seconds: 3
+  health_check_interval_seconds: 5
+  admin:
+    enable_metrics: true
+    enable_pprof: true
+    health_check_endpoint: /health_check
+    submodule: admin
+
+# spex agent configuration that follows spkit spex.Config (https://git.garena.com/shopee/common/spkit/-/blob/master/internal/spex/spex.go)
+spex:
+  tag: master
+  sdu_id: default
+  non_live_config_key: e8095ac350b981f89625d26ab117a64b28068151ffb2af1ea2e2e064da642b4e
+
+httpserver:
+  submodule: httpserver
+
+# spex_app configuration is optional, incase of we need define app serve_rule, we need to update main.go with:
+# `spexApp, err := app.NewSpexApp(pb.NewScaffoldServer(ScaffoldServer{}), app.ConfigKey("spex_app"))`
+# https://spkit.shopee.io/user/spkit/docs/spex_app.html?h=spex_app#config-key
+# spex_app:
+#   serve_rule:
+#     default:
+#       cid: true # set to false to use global
+#       idc: false # set to false to use global
+
+# for this service, we use remote logger config, can refer the doc https://spkit.shopee.io/guide/manual/ulog-remote-config.html?h=log
+# logger configuration follows ulog config schema, only optional when you init
+# spkit with your own logger implementation.
+#logger:
+#  sensitive_fields: &sensitive_fields
+#    - token
+#    - sso_token
+#    - shopee_token
+#    - encrypted_tokens
+#    - encrypted_token
+#  loggers:
+#    - name: default
+#      level: info
+#      handlers:
+#        - type: FileHandler
+#          levels: [data]
+#          file: log/data.log
+#          message:
+#            format: short
+#            fields_format: json
+#            max_bytes: 10000
+#            sensitive_fields: *sensitive_fields
+#          rollover:
+#            rollover_size: 1000M
+#            rollover_interval: 1h
+#            backup_count: 200
+#            backup_time: 7d
+#        - type: FileHandler
+#          levels: [debug]
+#          file: log/data.log
+#          message:
+#            format: long
+#            fields_format: text
+#            max_bytes: 10000
+#            meta_option: SourceRuntime
+#            sensitive_fields: *sensitive_fields
+#          rollover:
+#            rollover_size: 1000M
+#            rollover_interval: 1h
+#            backup_count: 100
+#            backup_time: 2d
+#        - type: FileHandler
+#          levels: [info]
+#          file: log/data.log
+#          message:
+#            format: standard
+#            fields_format: text
+#            max_bytes: 10000
+#            meta_option: Runtime
+#            sensitive_fields: *sensitive_fields
+#          rollover:
+#            rollover_size: 1000M
+#            rollover_interval: 1h
+#            backup_count: 200
+#            backup_time: 7d
+#        - type: FileHandler
+#          levels: [warn, error]
+#          file: log/data.log
+#          message:
+#            format: long
+#            fields_format: text
+#            max_bytes: 10000
+#            meta_option: SourceRuntime
+#            sensitive_fields: *sensitive_fields
+#          rollover:
+#            rollover_size: 1000M
+#            rollover_interval: 1d
+#            backup_count: 20
+#            backup_time: 7d
+#  sentry:
+#    enabled: false

@@ -1,0 +1,26 @@
+syntax = "proto2";
+package internal;
+
+message AShopData {
+    optional uint64 affi_shopid = 1;
+    optional uint64 promotion_id = 2;
+    optional int32 price_ratio = 3;
+    optional int64 shop_margin = 4;
+    optional int32 ctime = 5;
+    optional int32 mtime = 6;
+    optional uint64 mst_shopid = 10; // TODO: remove this field after DB split is done
+}
+
+message AItemData {
+    optional uint64 id = 1;
+    optional uint64 affi_itemid = 2;
+    optional uint64 affi_shopid = 3;
+    optional string affi_country = 4;
+    optional int32 item_margin = 5;
+    optional int32 affi_real_weight = 6;
+    optional uint64 price_err_code = 7;
+    optional string price_err_msg = 8;
+    optional int32 ctime = 9;
+    optional int32 mtime = 10;
+    optional uint64 mst_shopid = 20; // TODO: remove this field after DB split is done, added just for set_a_item_margin
+}

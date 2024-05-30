@@ -1,0 +1,25 @@
+syntax = "proto2";
+package internal;
+
+// MerchantConfigSetting defines the necessary info of db.MerchantConfigSetting to mitigate big key issue
+message MerchantConfigSetting {
+  optional uint64 id = 1;
+  optional uint64 merchant_id = 2;
+  optional uint64 shop_id = 3;
+  optional string region = 4;
+//  optional uint32 upgrade_status = 5;
+  optional uint64 profit_rate = 6;
+  optional uint64 service_fee_rate = 7;
+//  optional string sync_field_map = 8;
+  optional uint32 ctime = 9;
+  optional uint32 mtime = 10;
+}
+
+// MerchantConfigPriceFactorSetting the config that can be update
+message MerchantConfigPriceFactorSetting {
+  optional uint64 merchant_id = 1;
+  optional uint64 shop_id = 2;
+  optional string region = 3;
+  optional uint64 profit_rate = 4;
+  optional uint64 service_fee_rate = 5;
+}

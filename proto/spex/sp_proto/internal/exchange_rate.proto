@@ -1,0 +1,19 @@
+syntax = "proto2";
+package internal;
+
+message ExchangeRateInfo {
+  optional string currency = 1;
+  repeated ExchangeRateData exchange_rate_list  = 2;
+}
+
+message ExchangeRateData {
+  optional double exchange_rate = 1;
+  optional string region = 2;
+}
+
+message ExchangeRateResult {
+  optional string message = 1;
+  optional string debug_message = 2;
+  optional uint32 code = 3;
+  optional ExchangeRateInfo data = 4;
+}
